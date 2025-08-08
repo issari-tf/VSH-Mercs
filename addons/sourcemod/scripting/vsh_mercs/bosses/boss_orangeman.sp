@@ -100,11 +100,20 @@ public void Orangeman_GetBossInfo(SaxtonHaleBase boss, char[] sInfo, int length)
 
 public void Orangeman_OnSpawn(SaxtonHaleBase boss)
 {
+  int iWeapon;
   char attribs[128];
   Format(attribs, sizeof(attribs), "2 ; 2.31 ; 812 ; 2.0");
-  int iWeapon = boss.CallFunction("CreateWeapon", 264, "tf_weapon_bottle", 100, TFQual_Collectors, attribs);	//Frying Pan Index, classname doesnt like saxxy
+  
+  // Spawn Frying Pan
+  iWeapon = boss.CallFunction("CreateWeapon", 264, "tf_weapon_bottle", 100, TFQual_Collectors, attribs);	//Frying Pan Index, classname doesnt like saxxy
   if (iWeapon > MaxClients)
     SetEntPropEnt(boss.iClient, Prop_Send, "m_hActiveWeapon", iWeapon);
+
+  // Spawn Grenade Launcher
+  iWeapon = boss.CallFunction("CreateWeapon", 19, "tf_weapon_grenadelauncher", 100, TFQual_Collectors, attribs);
+
+  // Spawn Pipebomb
+  iWeapon = boss.CallFunction("CreateWeapon", 20, "tf_weapon_pipebomblauncher", 100, TFQual_Collectors, attribs);
 }
 
 public void Orangeman_GetSound(SaxtonHaleBase boss, char[] sSound, int length, SaxtonHaleSound iSoundType)

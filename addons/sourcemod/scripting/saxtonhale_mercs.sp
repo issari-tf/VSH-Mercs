@@ -150,12 +150,19 @@ public Plugin myinfo =
   url                = "",
 };
 
+bool g_bEnabled = false;
+int g_iTotalRoundPlayed = 0;
+
 public void OnPluginStart()
 {
+  // Call on RoundStart to randomly get a player.
+  HookEvent("teamplay_round_start", Event_RoundStart, EventHookMode_Post);
+  HookEvent("teamplay_round_win",   Event_RoundEnd);
 }
 
 public void OnMapStart()
 {
+  g_iTotalRoundPlayed = 0;
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -163,6 +170,77 @@ public void OnLibraryAdded(const char[] name)
   if (StrEqual(name, "saxtonhale"))
   {
     // Register our Boss
+    g_bEnabled = true;
     SaxtonHale_RegisterClass("Orangeman", VSHClassType_Boss);
   }
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+  if (StrEqual(name, "saxtonhale"))
+  {
+    g_bEnabled = false;
+  }
+}
+
+public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
+{
+  if (!g_bEnabled || GameRules_GetProp("m_bInWaitingForPlayers"))
+    return Plugin_Handled;
+
+   // Play one round of arena
+  if (g_iTotalRoundPlayed <= 0)
+    return Plugin_Handled;
+
+  int[] iPlayers = new int[MaxClients];
+  int iPlayerCount = 0;
+
+  for (int i = 1; i <= MaxClients; i++)
+  {
+    SaxtonHaleBase boss = SaxtonHaleBase(i);
+    // if not valid, if is boss, if is bot
+    if (!IsValidClient(i) && boss.bValid && IsFakeClient(i))
+      continue;
+
+    iPlayers[iPlayerCount++] = i;
+  }
+
+  if (iPlayerCount == 0)
+    return Plugin_Handled; // No valid players found
+
+  // issue here
+  int iRandomIndex = GetRandomInt(0, iPlayerCount - 1);
+  int iClient = iPlayers[iRandomIndex];
+
+  // Do something with iClient
+  PrintToChatAll("Random client selected: %N", iClient);
+
+  SaxtonHaleBase boss = SaxtonHaleBase(iClient);
+  if (boss.bValid) {
+    return Plugin_Handled;
+  }
+  boss.CreateClass("Orangeman");
+  TF2_RespawnPlayer(boss.iClient); // Might not be needed
+  return Plugin_Handled;
+}
+
+public void Event_RoundEnd(Event event, const char[] name, bool dontBroadcast)
+{
+  if (!g_bEnabled)
+    return;
+
+  g_iTotalRoundPlayed++;
+}
+
+stock bool IsValidClient(const int iClient, bool bReplayCheck=true)
+{
+  if (iClient <= 0 || iClient > MaxClients || !IsClientInGame(iClient))
+    return false;
+  else if (GetEntProp(iClient, Prop_Send, "m_bIsCoaching"))
+    return false;
+  else if (bReplayCheck && (IsClientSourceTV(iClient) || IsClientReplay(iClient)))
+    return false;
+  else if (TF2_GetPlayerClass(iClient) == TFClass_Unknown)
+    return false;
+  return true;
 }
